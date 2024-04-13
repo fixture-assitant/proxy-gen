@@ -14,18 +14,19 @@ gen64() {
 	echo "$1:$(ip64):$(ip64):$(ip64):$(ip64)"
 }
 install_3proxy() {
-    echo "installing 3proxy"
+    echo "Installing 3proxy"
     URL="https://github.com/3proxy/3proxy/releases/download/0.9.3/3proxy-0.9.3.tar.gz"
-    wget -qO- $URL | bsdtar -xvf-
-    cd 3proxy-3proxy-0.9.3
-    make -f Makefile.Linux
+    wget -qO- "$URL" | tar -xz
+    cd 3proxy-0.9.3 || { echo "Failed to change directory to 3proxy-0.9.3"; exit 1; }
+    make -f Makefile.Linux || { echo "Make failed"; exit 1; }
     mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
-    cp src/3proxy /usr/local/etc/3proxy/bin/
-    cp ./scripts/rc.d/proxy.sh /etc/init.d/3proxy
+    cp src/3proxy /usr/local/etc/3proxy/bin/ || { echo "Failed to copy 3proxy binary"; exit 1; }
+    cp ./scripts/rc.d/proxy.sh /etc/init.d/3proxy || { echo "Failed to copy init script"; exit 1; }
     chmod +x /etc/init.d/3proxy
-    chkconfig 3proxy on
-    cd $WORKDIR
+    chkconfig 3proxy on || { echo "Failed to add 3proxy to chkconfig"; exit 1; }
+    cd - || exit
 }
+
 
 gen_3proxy() {
     cat <<EOF
