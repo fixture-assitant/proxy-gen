@@ -1,32 +1,41 @@
 #!/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+WORKDIR="/home/fixture"
+WORKDATA="${WORKDIR}/data.txt"
+IP4=$(curl -4 -s icanhazip.com)
+IP6=$(curl -6 -s icanhazip.com | cut -f1-4 -d':')
+FIRST_PORT=22000
+LAST_PORT=22005
+VERSION="0.9.3"
+URL="https://github.com/3proxy/3proxy/releases/download/${VERSION}/3proxy-${VERSION}.tar.gz"
+
 random() {
-	tr </dev/urandom -dc A-Za-z0-9 | head -c5
-	echo
+    tr </dev/urandom -dc A-Za-z0-9 | head -c5
+    echo
 }
 
 array=(1 2 3 4 5 6 7 8 9 0 a b c d e f)
 gen64() {
-	ip64() {
-		echo "${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}"
-	}
-	echo "$1:$(ip64):$(ip64):$(ip64):$(ip64)"
-}
-install_3proxy() {
-    echo "Installing 3proxy"
-    URL="https://github.com/3proxy/3proxy/releases/download/0.9.3/3proxy-0.9.3.tar.gz"
-    wget -qO- "$URL" | tar -xz
-    cd 3proxy-0.9.3 || { echo "Failed to change directory to 3proxy-0.9.3"; exit 1; }
-    make -f Makefile.Linux || { echo "Make failed"; exit 1; }
-    mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
-    cp src/3proxy /usr/local/etc/3proxy/bin/ || { echo "Failed to copy 3proxy binary"; exit 1; }
-    cp ./scripts/rc.d/proxy.sh /etc/init.d/3proxy || { echo "Failed to copy init script"; exit 1; }
-    chmod +x /etc/init.d/3proxy
-    chkconfig 3proxy on || { echo "Failed to add 3proxy to chkconfig"; exit 1; }
-    cd - || exit
+    ip64() {
+        echo "${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}${array[$RANDOM % 16]}"
+    }
+    echo "$1:$(ip64):$(ip64):$(ip64):$(ip64)"
 }
 
+install_3proxy() {
+    echo "Installing 3proxy..."
+    wget -qO- "$URL" | tar -xz || { echo "Failed to download 3proxy source code"; exit 1; }
+    make -f Makefile.Linux || { echo "Make failed"; exit 1; }
+    echo "Current directory contents:"
+    ls
+    cd 3proxy-${VERSION} || { echo "Failed to change directory to 3proxy-${VERSION}"; exit 1; }
+    ls
+    mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
+    ls
+    cp bin/3proxy /usr/local/etc/3proxy/bin/ || { echo "Failed to copy 3proxy binary"; exit 1; }
+    cd - || exit
+}
 
 gen_3proxy() {
     cat <<EOF
@@ -59,7 +68,6 @@ $(awk -F "/" '{print $3 ":" $4 ":" $1 ":" $2 }' ${WORKDATA})
 EOF
 }
 
-
 gen_data() {
     seq $FIRST_PORT $LAST_PORT | while read port; do
         echo "user$port/$(random)/$IP4/$port/$(gen64 $IP6)"
@@ -77,23 +85,16 @@ gen_ifconfig() {
 $(awk -F "/" '{print "ifconfig eth0 inet6 add " $5 "/64"}' ${WORKDATA})
 EOF
 }
-echo "installing apps"
+
+echo "Installing apps..."
 yum -y install gcc net-tools bsdtar zip >/dev/null
 
 install_3proxy
 
-echo "working folder = /home/bkns"
-WORKDIR="/home/bkns"
-WORKDATA="${WORKDIR}/data.txt"
+echo "Working folder = ${WORKDIR}"
 mkdir $WORKDIR && cd $_
 
-IP4=$(curl -4 -s icanhazip.com)
-IP6=$(curl -6 -s icanhazip.com | cut -f1-4 -d':')
-
-echo "Internal ip = ${IP4}. Exteranl sub for ip6 = ${IP6}"
-
-FIRST_PORT=22000
-LAST_PORT=22700
+echo "Internal IP = ${IP4}. External subnet for IP6 = ${IP6}"
 
 gen_data >$WORKDIR/data.txt
 gen_iptables >$WORKDIR/boot_iptables.sh
@@ -115,4 +116,4 @@ gen_proxy_file_for_user
 rm -rf /root/setup.sh
 rm -rf /root/3proxy-3proxy-0.8.6
 
-echo "Starting Proxy"
+echo "Starting Proxy..."
