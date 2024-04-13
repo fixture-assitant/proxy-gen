@@ -1,9 +1,11 @@
 #!/bin/bash
+
 YUM=$(which yum)
 IP=$(curl -4 -s icanhazip.com)
 IPC=$(echo $IP | cut -d"." -f3)
 IPD=$(echo $IP | cut -d"." -f4)
 INT=$(ls /sys/class/net | grep e)
+IPV6_PREFIX="2403:6a40:0"
 
 if [ "$YUM" ]; then
 	echo > /etc/sysctl.conf
@@ -13,7 +15,6 @@ net.ipv6.conf.all.disable_ipv6 = 0
 EOF
 	sysctl -p
 
-	IPV6_PREFIX="2403:6a40:0"
 	if [ $IPC == 4 ]; then
 		IPV6_PREFIX+=":40"
 	elif [ $IPC == 5 ]; then
@@ -37,7 +38,6 @@ EOF
 	service network restart
 	rm -rf ipv6.sh
 else
-	IPV6_PREFIX="2403:6a40:0"
 	if [ "$IPC" = "4" ]; then
 		IPV6_PREFIX+=":40"
 	elif [ "$IPC" = "5" ]; then
@@ -56,7 +56,7 @@ else
 	elif [ "$INT" = "eth0" ]; then
 		netplan_path="/etc/netplan/50-cloud-init.yaml"
 	else
-		echo 'Khong co card mang phu hop'
+		echo 'No suitable network card found'
 		exit 1
 	fi
 
@@ -67,4 +67,4 @@ else
 	sudo netplan apply
 fi
 
-echo 'Da tao IPV6 thanh cong!'
+echo 'Successfully created IPV6!'
