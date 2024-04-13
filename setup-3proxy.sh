@@ -26,11 +26,9 @@ gen64() {
 install_3proxy() {
     echo "Installing 3proxy..."
     wget -qO- "$URL" | tar -xz || { echo "Failed to download 3proxy source code"; exit 1; }
+    cd 3proxy-${VERSION} || { echo "Failed to change directory to 3proxy-${VERSION}"; exit 1; }
     make -f Makefile.Linux || { echo "Make failed"; exit 1; }
     echo "Current directory contents:"
-    ls
-    cd 3proxy-${VERSION} || { echo "Failed to change directory to 3proxy-${VERSION}"; exit 1; }
-    ls
     mkdir -p /usr/local/etc/3proxy/{bin,logs,stat}
     ls
     cp bin/3proxy /usr/local/etc/3proxy/bin/ || { echo "Failed to copy 3proxy binary"; exit 1; }
